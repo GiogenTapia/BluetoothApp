@@ -32,6 +32,12 @@ import java.util.ArrayList;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity  {
+    /**
+     * Variables necesarias para el funcionamiento de la aplicacion
+     * Podemos encontrar desde botones, adaptador de bluetooth y listas
+     * donde se almacenaran los diferentes dispositivos encontrados
+     * y ademas un array adapater para adaptarla a un List View
+     */
 
     private static final int REQUEST_ENABLE_BT =0 ;
     private static final String TAG ="PRUEBA";
@@ -43,7 +49,12 @@ public class MainActivity extends AppCompatActivity  {
     ArrayAdapter<BluetoothDevice> arrayAdapter;
     private BluetoothService mBluetoothConnection;
 
-
+    /**
+     * Metodo de creacion de la vista, en esta parte se encuentran todas las herramientas de nuesto xml
+     * Ademas comenzamos a revisar si el dispositivo contiene Bluetooth y ademas inicializamos nuestro arrayAdapter
+     * Se encuentran los diferentes metodos de click
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +81,9 @@ public class MainActivity extends AppCompatActivity  {
         dispositivos.setAdapter(arrayAdapter);
 
         //Boton de encendido
+         //Metodo que nos ayudara a encender nuestro bluetooth, comprobaremos primero que se
+         //encuentre apagado
+
         btnEncender.setOnClickListener(l ->{
             if (!bluetoothAdapter.isEnabled()){
                 msg("Encendiendo Bluetooth...");
@@ -82,6 +96,7 @@ public class MainActivity extends AppCompatActivity  {
         });
 
         //Boton de apagado
+        //En esta parte apagaremos nuestro Bluetooth
         btnApagar.setOnClickListener(l ->{
             if (bluetoothAdapter.isEnabled()){
                 msg("Desconectando");
@@ -92,6 +107,9 @@ public class MainActivity extends AppCompatActivity  {
 
         });
 
+        //En este metodo de click hace referencia a nuestro ListView, en el cual
+        //cuando se precione un elemento de la lista (los dispositivos moviles encontrados)
+        //Se comenzara a realizar la conexion por Bluetooth
         dispositivos.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -132,7 +150,8 @@ public class MainActivity extends AppCompatActivity  {
         }
     };
 
-
+    //Este BroadcastReceiver se encargara de buscar dispositivos con bluetooth activos
+    // este paso se necesita hacer en un hilo secundario, ya que, se estara buscando dispositivos
     public final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -150,6 +169,14 @@ public class MainActivity extends AppCompatActivity  {
         }
     };
 
+    /**
+     * Diferentes resultados de los intents para encender o apagar nuestro Bluetooth, dependiendo
+     * de cual sea el resultado este hara diferentes cosas, desde comenzar a encender nuestro Bluetooth y
+     * reñenar los diferentes dispositivos ya sincronizados con nuestro movil o solo apagar el Bluetooth
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         switch (requestCode){
@@ -182,6 +209,15 @@ public class MainActivity extends AppCompatActivity  {
        return true;
     }
 
+    /**
+     * Este es para la seleccion de nuestro optionsItem
+     * Dependiendo de cual se presione realizara diferentes cosas
+     * Tenemos el de buscar, el cual comenzara a descubrir dispositivos cercanos gracias al startDiscovery
+     *
+     * Tambien tenemos la opcion de hacer visible nuestro dispositivo por cierto tiempo
+     * @param item
+     * @return
+     */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
@@ -216,6 +252,11 @@ public class MainActivity extends AppCompatActivity  {
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * Medoto para enviar mensajes mediante Toast
+     * @param ms
+     */
+
     public void msg(String ms){
         Toast.makeText(this,ms,Toast.LENGTH_LONG).show();
     }
@@ -225,10 +266,13 @@ public class MainActivity extends AppCompatActivity  {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(receiver);
+        mBluetoothConnection.stop();
     }
 
-
-public void cargar(){
+    /**
+     * Cargar los diferentes dispositivos ya sincronizados en nuestro movil
+     */
+    public void cargar(){
     Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
     if (pairedDevices.size() > 0) {
         // There are paired devices. Get the name and address of each paired device.
