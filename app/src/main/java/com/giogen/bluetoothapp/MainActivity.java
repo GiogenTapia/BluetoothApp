@@ -14,9 +14,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -27,15 +31,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity  {
 
     private static final int REQUEST_ENABLE_BT =0 ;
+    private static final String TAG ="PRUEBA";
     private static final int REQUEST_DISABLE_BT = 1;
     BluetoothAdapter bluetoothAdapter;
     Button btnEncender, btnApagar;
     ListView dispositivos;
-    ArrayList<String> listString = new ArrayList<>();
-    ArrayAdapter<String> arrayAdapter;
+    ArrayList<BluetoothDevice>  listBlueto = new ArrayList<>();
+    ArrayAdapter<BluetoothDevice> arrayAdapter;
+    private BluetoothService mBluetoothConnection;
 
 
     @Override
@@ -46,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
        btnEncender = findViewById(R.id.btnEncender);
        btnApagar = findViewById(R.id.btnApagar);
        dispositivos = findViewById(R.id.listDispositivos);
-       arrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1,listString);
+       arrayAdapter = new ArrayAdapter<BluetoothDevice>(getApplicationContext(), android.R.layout.simple_list_item_1,listBlueto);
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
 
@@ -56,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
 
         }else{
            msg("Bluetooth is available");
+        }
+        if (bluetoothAdapter.isEnabled()){
+            cargar();
         }
 
         dispositivos.setAdapter(arrayAdapter);
@@ -83,12 +92,46 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
+        dispositivos.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //first cancel discovery because its very memory intensive.
+                //mBluetoothAdapter.cancelDiscovery();
+                BluetoothDevice device = listBlueto.get(position);
+                //BluetoothDevice device = mPairedDevices.get(clickedItemIndex);
+
+                Log.d(TAG, "onItemClick: You Clicked on a device.");
+                String deviceName = device.getName();
+                String deviceAddress = device.getAddress();
+
+                Log.d(TAG, "onItemClick: deviceName = " + deviceName);
+                Log.d(TAG, "onItemClick: deviceAddress = " + deviceAddress);
+
+                mBluetoothConnection = new BluetoothService(mHandler);
+                Log.d(TAG, "Connecting with " + device.getName());
+                //device.createBond();
+                mBluetoothConnection.startClient(device);
+            }
+        });
 
 
 
 
 
     }
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+
+            byte[] readBuf = (byte[]) msg.obj;
+            int numberOfBytes = msg.arg1;
+
+            // construct a string from the valid bytes in the buffer
+            String readMessage = new String(readBuf, 0, numberOfBytes);
+            Log.d(TAG, readMessage);
+        }
+    };
+
 
     public final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -99,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
                 Log.d("JALAR",deviceName);
-                listString.add(deviceName);
+                listBlueto.add(device);
                 arrayAdapter.notifyDataSetChanged();
                 msg(deviceName);
 
@@ -113,24 +156,15 @@ public class MainActivity extends AppCompatActivity {
             case REQUEST_ENABLE_BT:
                 if (resultCode == RESULT_OK){
                     msg("Bluetooth encendido");
-                    Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-                    if (pairedDevices.size() > 0) {
-                        // There are paired devices. Get the name and address of each paired device.
-                        for (BluetoothDevice device : pairedDevices) {
-                            String deviceName = device.getName();
-                            String deviceHardwareAddress = device.getAddress(); // MAC address
-                            listString.add(deviceName);
-                            arrayAdapter.notifyDataSetChanged();
+                    cargar();
 
-                        }
-                    }
                 }
                 break;
             case REQUEST_DISABLE_BT:
                 if (resultCode == RESULT_OK){
 
                     msg("Bluetooth apagado");
-                    listString.clear();
+                    listBlueto.clear();
                     arrayAdapter.notifyDataSetChanged();
                 }else{
                     msg("Ya lo tienes apagado");
@@ -194,54 +228,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-/*
-    private class AcceptThread extends Thread {
-        private static final String TAG = "CALIS" ;
-        private final BluetoothServerSocket mmServerSocket;
+public void cargar(){
+    Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+    if (pairedDevices.size() > 0) {
+        // There are paired devices. Get the name and address of each paired device.
+        for (BluetoothDevice device : pairedDevices) {
+            String deviceName = device.getName();
+            String deviceHardwareAddress = device.getAddress(); // MAC address
+            listBlueto.add(device);
+            arrayAdapter.notifyDataSetChanged();
 
-        public AcceptThread() {
-            // Use a temporary object that is later assigned to mmServerSocket
-            // because mmServerSocket is final.
-            BluetoothServerSocket tmp = null;
-            try {
-                // MY_UUID is the app's UUID string, also used by the client code.
-                tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG, "Socket's listen() method failed", e);
-            }
-            mmServerSocket = tmp;
-        }
-
-        public void run() {
-            BluetoothSocket socket = null;
-            // Keep listening until exception occurs or a socket is returned.
-            while (true) {
-                try {
-                    socket = mmServerSocket.accept();
-                } catch (IOException e) {
-                    Log.e(TAG, "Socket's accept() method failed", e);
-                    break;
-                }
-
-                if (socket != null) {
-                    // A connection was accepted. Perform work associated with
-                    // the connection in a separate thread.
-                    manageMyConnectedSocket(socket);
-                    mmServerSocket.close();
-                    break;
-                }
-            }
-        }
-
-        // Closes the connect socket and causes the thread to finish.
-        public void cancel() {
-            try {
-                mmServerSocket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Could not close the connect socket", e);
-            }
         }
     }
+}
 
- */
+
+
 }

@@ -42,9 +42,11 @@
 
     <ListView
         android:id="@+id/listDispositivos"
-        android:layout_width="312dp"
-        android:layout_height="493dp"
+        android:layout_width="407dp"
+        android:layout_height="581dp"
         android:layout_marginTop="11dp"
+        android:background="@color/teal_700"
+        android:cacheColorHint="@color/design_default_color_on_secondary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
