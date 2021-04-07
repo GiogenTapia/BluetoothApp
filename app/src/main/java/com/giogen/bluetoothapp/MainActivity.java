@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity  {
+public class MainActivity extends AppCompatActivity {
     /**
      * Variables necesarias para el funcionamiento de la aplicacion
      * Podemos encontrar desde botones, adaptador de bluetooth y listas
@@ -39,13 +39,14 @@ public class MainActivity extends AppCompatActivity  {
      * y ademas un array adapater para adaptarla a un List View
      */
 
-    private static final int REQUEST_ENABLE_BT =0 ;
-    private static final String TAG ="PRUEBA";
+    private static final int REQUEST_ENABLE_BT = 0;
+    private static final String TAG = "PRUEBA";
     private static final int REQUEST_DISABLE_BT = 1;
     BluetoothAdapter bluetoothAdapter;
     Button btnEncender, btnApagar;
     ListView dispositivos;
-    ArrayList<BluetoothDevice>  listBlueto = new ArrayList<>();
+    ArrayList<BluetoothDevice> listBlueto = new ArrayList<>();
+
     ArrayAdapter<BluetoothDevice> arrayAdapter;
     private BluetoothService mBluetoothConnection;
 
@@ -53,55 +54,58 @@ public class MainActivity extends AppCompatActivity  {
      * Metodo de creacion de la vista, en esta parte se encuentran todas las herramientas de nuesto xml
      * Ademas comenzamos a revisar si el dispositivo contiene Bluetooth y ademas inicializamos nuestro arrayAdapter
      * Se encuentran los diferentes metodos de click
+     *
      * @param savedInstanceState
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-       bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-       btnEncender = findViewById(R.id.btnEncender);
-       btnApagar = findViewById(R.id.btnApagar);
-       dispositivos = findViewById(R.id.listDispositivos);
-       arrayAdapter = new ArrayAdapter<BluetoothDevice>(getApplicationContext(), android.R.layout.simple_list_item_1,listBlueto);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        btnEncender = findViewById(R.id.btnEncender);
+        btnApagar = findViewById(R.id.btnApagar);
+        dispositivos = findViewById(R.id.listDispositivos);
+        arrayAdapter = new ArrayAdapter<BluetoothDevice>(getApplicationContext(), android.R.layout.simple_list_item_1, listBlueto);
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
 
         if (bluetoothAdapter == null) {
             // Device doesn't support Bluetooth
-           msg("Bluetooth is not available");
+            msg("Bluetooth is not available");
 
-        }else{
-           msg("Bluetooth is available");
+        } else {
+            msg("Bluetooth is available");
         }
-        if (bluetoothAdapter.isEnabled()){
+        if (bluetoothAdapter.isEnabled()) {
             cargar();
         }
 
         dispositivos.setAdapter(arrayAdapter);
 
         //Boton de encendido
-         //Metodo que nos ayudara a encender nuestro bluetooth, comprobaremos primero que se
-         //encuentre apagado
+        //Metodo que nos ayudara a encender nuestro bluetooth, comprobaremos primero que se
+        //encuentre apagado
 
-        btnEncender.setOnClickListener(l ->{
-            if (!bluetoothAdapter.isEnabled()){
+        btnEncender.setOnClickListener(l -> {
+            if (!bluetoothAdapter.isEnabled()) {
                 msg("Encendiendo Bluetooth...");
                 Intent bluetooth = new Intent(bluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(bluetooth,REQUEST_ENABLE_BT);
+                startActivityForResult(bluetooth, REQUEST_ENABLE_BT);
 
-            }else{
+            } else {
                 msg("Bluetooth ya esta encendido");
             }
         });
 
         //Boton de apagado
         //En esta parte apagaremos nuestro Bluetooth
-        btnApagar.setOnClickListener(l ->{
-            if (bluetoothAdapter.isEnabled()){
+        btnApagar.setOnClickListener(l -> {
+            if (bluetoothAdapter.isEnabled()) {
                 msg("Desconectando");
                 bluetoothAdapter.disable();
-            }else{
+                listBlueto.clear();
+                arrayAdapter.notifyDataSetChanged();
+            } else {
                 msg("Ya se encuentra desactivado");
             }
 
@@ -133,10 +137,8 @@ public class MainActivity extends AppCompatActivity  {
         });
 
 
-
-
-
     }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -155,13 +157,14 @@ public class MainActivity extends AppCompatActivity  {
     public final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.d("JALAR","ANALIZANDO");
+            Log.d("JALAR", "ANALIZANDO");
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-                Log.d("JALAR",deviceName);
+//                Log.d("JALAR", deviceName);
                 listBlueto.add(device);
+
                 arrayAdapter.notifyDataSetChanged();
                 msg(deviceName);
 
@@ -173,27 +176,27 @@ public class MainActivity extends AppCompatActivity  {
      * Diferentes resultados de los intents para encender o apagar nuestro Bluetooth, dependiendo
      * de cual sea el resultado este hara diferentes cosas, desde comenzar a encender nuestro Bluetooth y
      * reñenar los diferentes dispositivos ya sincronizados con nuestro movil o solo apagar el Bluetooth
+     *
      * @param requestCode
      * @param resultCode
      * @param data
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        switch (requestCode){
+        switch (requestCode) {
             case REQUEST_ENABLE_BT:
-                if (resultCode == RESULT_OK){
+                if (resultCode == RESULT_OK) {
                     msg("Bluetooth encendido");
                     cargar();
 
                 }
                 break;
             case REQUEST_DISABLE_BT:
-                if (resultCode == RESULT_OK){
+                if (resultCode == RESULT_OK) {
 
                     msg("Bluetooth apagado");
-                    listBlueto.clear();
-                    arrayAdapter.notifyDataSetChanged();
-                }else{
+
+                } else {
                     msg("Ya lo tienes apagado");
 
                 }
@@ -205,16 +208,17 @@ public class MainActivity extends AppCompatActivity  {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.actionmenu,menu);
-       return true;
+        getMenuInflater().inflate(R.menu.actionmenu, menu);
+        return true;
     }
 
     /**
      * Este es para la seleccion de nuestro optionsItem
      * Dependiendo de cual se presione realizara diferentes cosas
      * Tenemos el de buscar, el cual comenzara a descubrir dispositivos cercanos gracias al startDiscovery
-     *
+     * <p>
      * Tambien tenemos la opcion de hacer visible nuestro dispositivo por cierto tiempo
+     *
      * @param item
      * @return
      */
@@ -222,28 +226,28 @@ public class MainActivity extends AppCompatActivity  {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
             case R.id.item1:
-                if (bluetoothAdapter.isEnabled()){
+                if (bluetoothAdapter.isEnabled()) {
 
                     if (bluetoothAdapter.isDiscovering()) {
                         // El Bluetooth ya está en modo discover, lo cancelamos para iniciarlo de nuevo
                         bluetoothAdapter.cancelDiscovery();
                     }
                     bluetoothAdapter.startDiscovery();
-                    Log.d("JALAR","ENTRO");
+                    Log.d("JALAR", "ENTRO");
 
-                }else {
+                } else {
                     msg("Encienda el bluetooth");
                 }
                 break;
 
             case R.id.item2:
-                if (bluetoothAdapter.isEnabled()){
+                if (bluetoothAdapter.isEnabled()) {
                     Intent discoverableIntent =
                             new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                     discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
                     startActivity(discoverableIntent);
                     msg("Visible por 300 segundos");
-                }else {
+                } else {
                     msg("Encienda el Bluetooth");
                 }
 
@@ -254,11 +258,12 @@ public class MainActivity extends AppCompatActivity  {
 
     /**
      * Medoto para enviar mensajes mediante Toast
+     *
      * @param ms
      */
 
-    public void msg(String ms){
-        Toast.makeText(this,ms,Toast.LENGTH_LONG).show();
+    public void msg(String ms) {
+        Toast.makeText(this, ms, Toast.LENGTH_LONG).show();
     }
 
 
@@ -272,20 +277,19 @@ public class MainActivity extends AppCompatActivity  {
     /**
      * Cargar los diferentes dispositivos ya sincronizados en nuestro movil
      */
-    public void cargar(){
-    Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-    if (pairedDevices.size() > 0) {
-        // There are paired devices. Get the name and address of each paired device.
-        for (BluetoothDevice device : pairedDevices) {
-            String deviceName = device.getName();
-            String deviceHardwareAddress = device.getAddress(); // MAC address
-            listBlueto.add(device);
-            arrayAdapter.notifyDataSetChanged();
+    public void cargar() {
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                String deviceHardwareAddress = device.getAddress(); // MAC address
+                listBlueto.add(device);
+                arrayAdapter.notifyDataSetChanged();
 
+            }
         }
     }
-}
-
 
 
 }
